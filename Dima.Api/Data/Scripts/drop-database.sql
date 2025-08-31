@@ -1,0 +1,8 @@
+﻿use [master]
+go
+
+ALTER DATABASE [dima-dev] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+go
+
+DROP DATABASE [dima-dev]
+go
