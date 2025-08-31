@@ -1,5 +1,9 @@
 using Dima.Api.Data;
+using Dima.Api.Handlers;
+using Dima.Core.Handlers;
 using Dima.Core.Models;
+using Dima.Core.Requests.Categories;
+using Dima.Core.Responses;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,7 +19,7 @@ builder.Services.AddSwaggerGen(x =>
 {
     x.CustomSchemaIds(type => type.FullName);
 });
-builder.Services.AddTransient<Handler>();
+builder.Services.AddTransient<ICategoryHandler, CategoryHandler>();;
 
 var app = builder.Build();
 
@@ -24,43 +28,10 @@ app.UseSwaggerUI();
 
 app.MapPost(
         "/v1/categories",
-        (Request request, Handler handler) 
-            => handler.Handle(request))
+        (CreateCategoryRequest request, ICategoryHandler handler) 
+            => handler.CreateAsync(request))
     .WithName("Categories: Create")
     .WithDescription("Cria uma nova categoria")
-    .Produces<Response>();
+    .Produces<Response<Category>>();
 
 app.Run();
-
-public class Request
-{
-    public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-}
-
-public class Response
-{
-    public long Id { get; set; }
-    public string Title { get; set; } = string.Empty;
-}
-
-public class Handler(AppDbContext context)
-{
-    public Response Handle(Request request)
-    {
-        var category = new Category
-        {
-            Title = request.Title,
-            Description = request.Description
-        };
-        
-        context.Categories.Add(category);
-        context.SaveChanges();
-        
-        return new Response()
-        {
-            Id = category.Id,
-            Title = category.Title
-        };
-    }
-}
