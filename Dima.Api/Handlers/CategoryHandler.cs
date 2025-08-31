@@ -3,14 +3,28 @@ using Dima.Core.Handlers;
 using Dima.Core.Models;
 using Dima.Core.Requests.Categories;
 using Dima.Core.Responses;
+using Microsoft.EntityFrameworkCore;
 
 namespace Dima.Api.Handlers;
 
 public class CategoryHandler(AppDbContext context) : ICategoryHandler
 {
-    public async Task<Response<Category>> GetByIdAsync(GetCategoryByIdRequest request)
+    public async Task<Response<Category?>> GetByIdAsync(GetCategoryByIdRequest request)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var category = await context.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.Id && x.UserId == request.UserId);
+        
+            return category is null
+                ? new Response<Category?>(null, 404, message: "Categoria não encontrada")
+                : new Response<Category?>(category);
+        }
+        catch(Exception ex)
+        {
+            return new Response<Category?>(null, 500, $"Não foi recuperar a categoria: {ex}");
+        }
     }
 
     public async Task<Response<List<Category>>> GetAllAsync(GetAllCategoriesRequest request)
@@ -18,7 +32,7 @@ public class CategoryHandler(AppDbContext context) : ICategoryHandler
         throw new NotImplementedException();
     }
 
-    public async Task<Response<Category>> CreateAsync(CreateCategoryRequest request)
+    public async Task<Response<Category?>> CreateAsync(CreateCategoryRequest request)
     {
         try
         {
@@ -32,22 +46,58 @@ public class CategoryHandler(AppDbContext context) : ICategoryHandler
             await context.Categories.AddAsync(category);
             await context.SaveChangesAsync();
         
-            return new Response<Category>(category);
+            return new Response<Category?>(category, 201, "Categoria criada com sucesso");
         }
-        catch (Exception ex)
+        catch(Exception ex)
         {
-            Console.WriteLine(ex);
-            throw new Exception($"Falha ao criar categoria: {ex}");
+            return new Response<Category?>(null, 500, $"Não foi possível criar a categoria: {ex}");
         }
     }
 
-    public async Task<Response<Category>> UpdateAsync(UpdateCategoryRequest request)
+    public async Task<Response<Category?>> UpdateAsync(UpdateCategoryRequest request)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var category = await context.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.Id && x.UserId == request.UserId);
+        
+            if(category is null) 
+                return new Response<Category?>(null, 404, "Categoria não encontrada");
+            
+            category.Title = request.Title;
+            category.Description = request.Description;
+        
+            context.Categories.Update(category);
+            await context.SaveChangesAsync();
+        
+            return new(category, message: "Categoria atualizada com sucesso");
+        }
+        catch(Exception ex)
+        {
+            return new Response<Category?>(null, 500, $"Não foi possível atualizar a categoria: {ex}");
+        }
     }
 
-    public async Task<Response<Category>> DeleteAsync(DeleteCategoryRequest request)
+    public async Task<Response<Category?>> DeleteAsync(DeleteCategoryRequest request)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var category = await context.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.Id && x.UserId == request.UserId);
+        
+            if(category is null) 
+                return new Response<Category?>(null, 404, "Categoria não encontrada");
+            
+            context.Categories.Remove(category);
+            await context.SaveChangesAsync();
+        
+            return new(category, message: "Categoria excluida com sucesso");
+        }
+        catch(Exception ex)
+        {
+            return new Response<Category?>(null, 500, $"Não foi possível excluir a categoria: {ex}");
+        }
     }
 }
